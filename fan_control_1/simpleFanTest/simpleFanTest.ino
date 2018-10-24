@@ -18,14 +18,16 @@ int PWM_PIN[] = {13,14,15};
 
 //Constants
 const double TICKS_PER_REV = 2; 
+const int SERIAL_MESSAGE_LENGTH = 1;
 const int NUMBER_LEVELS = 3;
 const int BAUD_RATE = 9600;
 const long TIMER_LENGTH = 1000000; //length of timer in microseconds
 const double TIMER_LENGTH_SECONDS = (double) (TIMER_LENGTH/1000000);
 
 //Variables
-int targetSpeed[] = {0,0,0}; //target speeds for each level of fans. To be set by computer (pi) control (over serial?)  
+int targetSpeed[] = {100,100,100}; //target speeds for each level of fans. To be set by computer (pi) control (over serial?)  
 int setValue[] = {0,0,0};
+int rxVal = 0;
 
 volatile double ticks[] = {0,0,0}; //counter for tachometer
 double gain = 1; //proportional control gain for fan control
@@ -54,6 +56,10 @@ void controlMotors() //interrupt driven. Every 1 second, modify pwm to each pair
     else if(setValue[i] <0){
       setValue[i] = 0;
     }    
+    Serial.print("setValue = ");
+    Serial.print(setValue[i]);
+    Serial.print("; Speed = ");
+    Serial.println(ticks[i]*60/(TIMER_LENGTH_SECONDS*TICKS_PER_REV));
     ticks[i] = 0; //reset value    
   }
   interrupts(); //re-enable interrupts
@@ -75,14 +81,43 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(TACH_PIN[1]),rpm1,RISING); //tachometer 1 interrupt
   attachInterrupt(digitalPinToInterrupt(TACH_PIN[2]),rpm2,RISING); //tachometer 2 interrupt
 
-  sei();
+  interrupts();
+  
+  analogWrite(PWM_PIN[0],rxVal); //set starting value to 0
 }
 
 void loop() {
   //moved writing writing motor speed into main loop to slim down interrupts and reduce system lag
-  analogWrite(PWM_PIN[0], setValue[0]);
-  analogWrite(PWM_PIN[1], setValue[1]);
-  analogWrite(PWM_PIN[2], setValue[2]); 
+//  analogWrite(PWM_PIN[0], setValue[0]);
+//  analogWrite(PWM_PIN[1], setValue[1]);
+//  analogWrite(PWM_PIN[2], setValue[2]); 
+delay(200);
+  if(Serial.available() > 0){
+    //when enough bytes have been sent to serial port, process message
+    int numBits = Serial.available();
+    Serial.print("there are x bits: ");
+    Serial.println(numBits);
+    rxVal = 0;
+    int readVal = 0;
+    int decMult = 1;
+    int mult=1;
+    for(int i=numBits;i>0;i--){
+      readVal = Serial.read();
+      if(readVal !=10){
+      Serial.print(readVal);
+      Serial.print(" ");
+      mult = 1;
+      for(int j=i-2;j>0;j--){
+        mult = mult*10;
+      }
+      Serial.println((readVal-48)*mult);
+      rxVal += (readVal-48)*mult;
+      }      
+    }
+    Serial.print("I received: ");
+    Serial.println(rxVal);
+    analogWrite(PWM_PIN[0],rxVal);
+  }
   
 //  Serial.print(); //print to debug or communicate... 
 }
