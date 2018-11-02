@@ -10,9 +10,9 @@
 //TODO: see how much speed variability there is between fans
 //TODO: confirm that setValue line works as expected and that casting doesn't cause issues
 //TODO: determine gain for proportional control
-//TODO: determine if sensor data should be sent to the pi
-//TODO: determine if there will be seperate sensors per level of the greenhouse
-//TODO: assign pins for humidity sensor, CO2 sensor, moisture sensor, light sensor, waterflow sensor?
+//TODO: determine if sensor data should be sent to the pi --> yes, code to do serial communication done, will be used afterwards by Adrian
+//TODO: determine if there will be seperate sensors per level of the greenhouse --> yes
+//TODO: assign pins for humidity sensor, CO2 sensor, moisture sensor, light sensor, waterflow sensor? --> no waterflow sens. needed
 //TODO: confirm that same sensors are being used as in FinalReport1.pdf
 //TODO: find bounds for fan speed (e.g. max speed, stall speed)
 
