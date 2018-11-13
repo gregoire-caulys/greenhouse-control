@@ -1,3 +1,5 @@
+
+//TODO: change motor control to use proper temperature value
 //TODO: Integrate previous control code to current code
 //TODO: Remove use of tachometers. Shouldn't need.
 //TODO: recieve motor speed command from Pi
@@ -30,8 +32,8 @@
 #include "sensors.h"
 
 //Defined Addresses:
-#define SHT31_ADDR        0x44
-#define SHT31_ADDR_OUT    0x45
+#define SHT31_ADDR_OFF        0x44
+#define SHT31_ADDR_ON    0x45
 
 #define HUMID_PIN         0
 #define HEAT_PIN          1
@@ -41,7 +43,6 @@
 //Constants
 const int SERIAL_MESSAGE_LENGTH = 1;
 const int NUMBER_LEVELS = 3;
-const int NUMBER_SENSORS = 7;
 const int BAUD_RATE = 9600;
 const long TIMER_LENGTH = 1000000; //length of timer in microseconds
 const double TIMER_LENGTH_SECONDS = (double) (TIMER_LENGTH / 1000000);
@@ -54,8 +55,9 @@ const int DEBUG_MODE = 1;
 //These pin assignments are arbitrary - can change to other digital pins if necessary
 const int RELAY_PIN[RELAYS_NB] = {6, 8, 10, 12}; // Pins for: humid, heat, pump1, pump2
 const int LIGHT_PIN[] = {22, 24, 26};
-const int FAN_PIN[] = {13, 14, 15};
-const int TEMP_PIN[] = {A1, A2, A3}; // A1,A2,A3 the output pin of LM35
+const int FAN_PIN[] = {13, 12, 11};
+const int TEMP_PIN[] = {31, 33, 35}; //digital pins to toggle address of the temp/hum sensors.
+const int TEMP_OUT_PIN = 37; //for outside temp sensor
 
 //Variables
 int k = 0;
@@ -92,21 +94,26 @@ void setup() {
   // initialize sensors
   for (int i = 0; i < NUMBER_LEVELS; i++) {
     light_sensor[i].init();
-    temp_hum_sensor_in[i].init(SHT31_ADDR); //TODO: FIGURE OUT HOW TO DEAL WITH MULTIPLE SENSOR INITIALIZATIONS
+    temp_hum_sensor_in[i].init(SHT31_ADDR_ON); //TODO: FIGURE OUT HOW TO DEAL WITH MULTIPLE SENSOR INITIALIZATIONS
   }
-  temp_hum_sensor_out.init(SHT31_ADDR_OUT);
+  temp_hum_sensor_out.init(SHT31_ADDR_ON);
 
   //set pins
   for (int i = 0; i < NUMBER_LEVELS; i++) {
     pinMode(FAN_PIN[i], OUTPUT); // motor speed output
-    pinMode(TEMP_PIN[i], INPUT); // temperature sensor input
     pinMode(LIGHT_PIN[i], OUTPUT); // pins for relay light control
+    pinMode(TEMP_PIN[i], OUTPUT); // pins for toggling I2C address of temp/hum sensor
   }
   for (k = 0; k < RELAYS_NB; k++) {
     pinMode(RELAY_PIN[k], OUTPUT);
   }
-
-  analogWrite(FAN_PIN[0], rx_val); //set starting value to 0
+  pinMode(TEMP_OUT_PIN, OUTPUT);
+  //set starting value to 0
+  analogWrite(FAN_PIN[0], rx_val);
+  digitalWrite(TEMP_PIN[0], LOW); //just in case
+  digitalWrite(TEMP_PIN[1], LOW);
+  digitalWrite(TEMP_PIN[2], LOW);
+  digitalWrite(TEMP_OUT_PIN, LOW);
 
   //Timer setup for interrupt driven control:
   Timer1.initialize(TIMER_LENGTH); //initializes timer1 with a 1s (1 million microsecond) period (max with a single timer/counter is ~8.3 seconds)
@@ -123,7 +130,7 @@ void controlGreenHouse() { //interrupt driven control of all actuators
 
 void controlFans() { //Every 1 second, modify pwm to each pair of fans; get the temperature and convert it to celsius
   for (int i = 0; i < NUMBER_LEVELS; i++) {
-    double temp = (double) analogRead(TEMP_PIN[i]);
+    double temp = 0;//(double) analogRead(TEMP_PIN[i]); //TODO CHANGE THIS
     meas_temp[i] =  temp * TEMP_SENSOR_CONVERSION;
   }
 
@@ -142,7 +149,7 @@ void controlFans() { //Every 1 second, modify pwm to each pair of fans; get the 
       set_value[i] = 0; //For very low commands. Simply turn off the fan
     }
     if (DEBUG_MODE == 1) {
-      debugPrint1(i);
+      //debugPrint1(i);
     }
   }
 }
@@ -196,20 +203,23 @@ void debugPrint2() {
 
 void debugControl() {
   //when enough bytes have been sent to serial port, process message
-  int num_bits = Serial.available();
-  Serial.print("there are x bits: ");
-  Serial.println(num_bits);
+  int num_bytes = Serial.available();
+  Serial.print("there are x bytes: ");
+  Serial.println(num_bytes);
   rx_val = 0;
   int read_val = 0;
   int dec_mult = 1;
   int mult = 1;
-  for (int i = num_bits; i > 0; i--) {
+  for (int i = num_bytes; i > 0; i--) {
     read_val = Serial.read();
     if (read_val != 10) {
+      Serial.print(read_val);
+      Serial.print(" ");
       mult = 1;
       for (int j = i - 2; j > 0; j--) {
         mult = mult * 10;
       }
+      Serial.println((read_val - 48)*mult);
       rx_val += (read_val - 48) * mult;
     }
   }
@@ -217,20 +227,53 @@ void debugControl() {
   analogWrite(FAN_PIN[0], rx_val);
 }
 
-void loop() {
+void debugSensors() {
+  //send sensor vals for: light sens 0-2, temp_hum sens 0-2, temp_hum_out
 
-  if (Serial.available()) {
-    if (DEBUG_MODE == 1) {
+  //read all temp sensors:
+  digitalWrite(TEMP_PIN[0], HIGH);
+  
+  String temp0 = temp_hum_sensor_in[0].get_measurements();
+  digitalWrite(TEMP_PIN[0], LOW);
+  digitalWrite(TEMP_PIN[1], HIGH);
+  String temp1 = temp_hum_sensor_in[1].get_measurements();
+  digitalWrite(TEMP_PIN[1], LOW);
+  digitalWrite(TEMP_PIN[2], HIGH);
+  String temp2 = temp_hum_sensor_in[2].get_measurements();
+  digitalWrite(TEMP_PIN[2], LOW);
+  digitalWrite(TEMP_OUT_PIN, HIGH);
+  String tempOut = temp_hum_sensor_in[2].get_measurements();
+  digitalWrite(TEMP_OUT_PIN, LOW);
+  String measurements[SENSORS_NB] =
+  {
+    //light_sensor[0].get_measurements(),
+    //light_sensor[1].get_measurements(),
+    //light_sensor[2].get_measurements(),
+    // NB : the two temp_hum sensors take each 100ms
+    // to get measurements, 100x slower than the others
+    temp0,temp1,temp2,tempOut};
+  Serial.println(build_json(measurements));
+}
+
+void loop() {
+  delay(200);
+  if (DEBUG_MODE == 1) {
+
+    if (Serial.available() > 3) {
       debugControl();
     }
-    else {
+    debugSensors();
+  }
+  else {
+
+    if (Serial.available()) {
       char instruction = Serial.read();
 
       // case s : send sensor measurements
       if (instruction == 's')
       {
         //send sensor vals for: light sens 0-2, temp_hum sens 0-2, temp_hum_out
-        String measurements[NUMBER_SENSORS] =
+        String measurements[SENSORS_NB] =
         { light_sensor[0].get_measurements(),
           light_sensor[1].get_measurements(),
           light_sensor[2].get_measurements(),

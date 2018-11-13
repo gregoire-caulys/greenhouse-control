@@ -82,32 +82,6 @@ bool TempHumSensor::init(int i2c_adr) {
 //____________________ TEMP HUMID DHT __________________________
 // analog communication
 
-TempHumSensorOut::TempHumSensorOut(String name, int pin) : _name(name), dht(DHT(pin, DHTTYPE)) {
-  _temperature = 21;
-}
-
-String TempHumSensorOut::get_measurements() {
-  
-  char humidity_str[8] = "";
-  dtostrf(dht.readHumidity(),7,2, humidity_str);
-  String humidity = String(humidity_str);
-  
-  char temperature_str[8] = "";
-  dtostrf(dht.readTemperature(), 7, 2, temperature_str);
-  String temperature = String(temperature_str);
-  _temperature = temperature.toInt();
-  
-  return "\""+_name+"\":{\"hum\":"+humidity+",\"temp\":"+temperature+"}";
-}
-
-String TempHumSensorOut::get_name() {
-  return _name;
-}
-
-void TempHumSensorOut::init() {
-  while(!Serial)
-  return dht.begin();
-}
 
 
 
@@ -213,4 +187,3 @@ bool Co2Sensor::data_receive()
 
     return true;
 }
-

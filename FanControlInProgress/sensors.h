@@ -20,7 +20,7 @@ AUTHORS :
 #include "SHT31.h"
 #include "DHT.h"
 
-#define SENSORS_NB 3
+#define SENSORS_NB 7
 
 String build_json(String sensor_measurements[SENSORS_NB]);
 
