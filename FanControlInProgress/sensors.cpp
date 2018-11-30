@@ -124,15 +124,9 @@ void FlowMeter::init() {
 
 
 //______________________ CO2 __________________________
-// UART serial communication
-
-const unsigned char cmd_get_sensor[] =
-{
-    0xff, 0x01, 0x86, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x79
-};
-
-Co2Sensor::Co2Sensor(String name, uint8_t tx, uint8_t rx): _name(name), _sensor(tx, rx) {
+// I2C communication
+/*
+Co2Sensor::Co2Sensor(String name): _name(name) _ccs(Adafruit_CCS811()){
 }
 
 String Co2Sensor::get_measurements() {
@@ -143,47 +137,7 @@ String Co2Sensor::get_name() {
   return _name;
 }
 
-void Co2Sensor::init() {
-  _sensor.begin(9600);
+void Co2Sensor::init(int i2c_adr) {
+  _ccs.begin()
 }
-
-bool Co2Sensor::data_receive()
-{
-    byte data[9];
-    int i = 0;
-
-    //transmit command data
-    for(i=0; i<sizeof(cmd_get_sensor); i++)
-    {
-        _sensor.write(cmd_get_sensor[i]);
-    }
-    delay(10);
-    //begin receiving data
-    if(_sensor.available())
-    {
-        while(_sensor.available())
-        {
-            for(int i=0;i<9; i++)
-            {
-                data[i] = _sensor.read();
-            }
-        }
-    }
-
-    for(int j=0; j<9; j++)
-    {
-        Serial.print(data[j]);
-        Serial.print(" ");
-    }
-    Serial.println("");
-
-    if((i != 9) || (1 + (0xFF ^ (byte)(data[1] + data[2] + data[3] + data[4] + data[5] + data[6] + data[7]))) != data[8])
-    {
-        return false;
-    }
-
-    _CO2PPM = (int)data[2] * 256 + (int)data[3];
-    _temperature = (int)data[4] - 40;
-
-    return true;
-}
+*/

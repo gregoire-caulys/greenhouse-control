@@ -18,6 +18,7 @@ AUTHORS :
 #include "SoftwareSerial.h"
 #include "SI114X.h"
 #include "SHT31.h"
+#include "Adafruit_CCS811.h"
 #include "DHT.h"
 
 #define SENSORS_NB 7
@@ -95,25 +96,23 @@ public:
   String get_measurements();
   String get_name();
 };
-
+/*
 //______________________ CO2 __________________________
 
 class Co2Sensor {
   String _name;
-  
+  Adafruit_CCS811 _ccs;
   // unsigned char _dataRevice[9];
-  int _temperature;
   int _CO2PPM;
   SoftwareSerial _sensor;
   
   
 public:
-  Co2Sensor(String name, uint8_t tx, uint8_t rx);
+  Co2Sensor();
   void init();
   String get_measurements();
   String get_name();
-  bool data_receive();
 };
-
+*/
 
 #endif

@@ -22,6 +22,12 @@
 //      - library here: https://github.com/SeeedDocument/Grove-Sunlight_Sensor/raw/master/res/Grove_Sunlight_Sensor-master.zip
 //      - more info here: http://wiki.seeedstudio.com/Grove-Sunlight_Sensor/
 
+//CO2 Sensor
+//      - address = 0x5A
+//      - will also need to pull address pin up(?) to interface with multiple sensors
+
+
+
 //Included Libraries:
 #include <TimerOne.h> //Timer 1 library
 #include <SoftwareSerial.h>
@@ -53,11 +59,12 @@ const int DEBUG_MODE = 1;
 
 //Pin Definitions
 //These pin assignments are arbitrary - can change to other digital pins if necessary
-const int RELAY_PIN[RELAYS_NB] = {6, 8, 10, 12}; // Pins for: humid, heat, pump1, pump2
+const int RELAY_PIN[RELAYS_NB] = {53,51,49,47}; // Pins for: humid, heat, pump1, pump2
 const int LIGHT_PIN[] = {22, 24, 26};
-const int FAN_PIN[] = {13, 12, 11};
+const int FAN_PIN[] = {8,9,5};
 const int TEMP_PIN[] = {31, 33, 35}; //digital pins to toggle address of the temp/hum sensors.
 const int TEMP_OUT_PIN = 37; //for outside temp sensor
+//const int CO2_PIN[] = {41,43,45};
 
 //Variables
 int k = 0;
@@ -66,8 +73,8 @@ int inbyte = 0;
 int set_value[] = {0, 0, 0};
 int rx_val = 0;
 double target_temp[] = {21, 21, 21}; //target temperature, degrees C
-int target_hum[] = {50, 50, 50}; //target humidity, [%]?
-double meas_temp[] = {0, 0, 0};
+int target_hum[] = {50, 50, 50}; //target humidity, [%]? NOT CURRENTLY USED
+double meas_temp[] = {0, 0, 0}; 
 double temp_gain = 1; //proportional control gain for temperature control
 
 unsigned long TimeLight[] = {0, 0, 0};
@@ -86,6 +93,7 @@ LightSensor light_sensor[] = {LightSensor("light_win0"), LightSensor("light_win1
 TempHumSensor temp_hum_sensor_in[] = {TempHumSensor("temp_hum_in0"), TempHumSensor("temp_hum_in1"), TempHumSensor("temp_hum_in2")};
 TempHumSensor temp_hum_sensor_out("temp_hum_out");
 
+
 //Setup
 void setup() {
   Serial.begin(BAUD_RATE);
@@ -95,6 +103,7 @@ void setup() {
   for (int i = 0; i < NUMBER_LEVELS; i++) {
     light_sensor[i].init();
     temp_hum_sensor_in[i].init(SHT31_ADDR_ON); //TODO: FIGURE OUT HOW TO DEAL WITH MULTIPLE SENSOR INITIALIZATIONS
+    //co2_sensor[i].init();
   }
   temp_hum_sensor_out.init(SHT31_ADDR_ON);
 
@@ -103,6 +112,7 @@ void setup() {
     pinMode(FAN_PIN[i], OUTPUT); // motor speed output
     pinMode(LIGHT_PIN[i], OUTPUT); // pins for relay light control
     pinMode(TEMP_PIN[i], OUTPUT); // pins for toggling I2C address of temp/hum sensor
+    //pinMode(CO2_PIN[i],OUTPUT); //pins for toggling I2C address of C02 sensor
   }
   for (k = 0; k < RELAYS_NB; k++) {
     pinMode(RELAY_PIN[k], OUTPUT);
@@ -225,6 +235,11 @@ void debugControl() {
   }
   debugPrint2();
   analogWrite(FAN_PIN[0], rx_val);
+  delay(2000);
+  analogWrite(FAN_PIN[1], rx_val);
+  delay(2000);
+  analogWrite(FAN_PIN[2], rx_val);
+  delay(2000);
 }
 
 void debugSensors() {
@@ -256,13 +271,13 @@ void debugSensors() {
 }
 
 void loop() {
-  delay(200);
+  //delay(200);
   if (DEBUG_MODE == 1) {
 
     if (Serial.available() > 3) {
       debugControl();
     }
-    debugSensors();
+    //debugSensors();
   }
   else {
 
