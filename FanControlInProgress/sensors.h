@@ -13,8 +13,8 @@ AUTHORS :
 #ifndef sensors_h
 #define sensors_h
 
-#include "Arduino.h"
-#include "Wire.h"
+#include "Arduino.h" 
+#include "Wire.h" //library path should be added here : /usr/share/arduino/libraries/Wire/Wire.h
 #include "SoftwareSerial.h"
 #include "SI114X.h"
 #include "SHT31.h"
